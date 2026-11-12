@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Antrian - UPT Puskesmas Sebangar</title>
+    <style>
+        /* Memastikan fungsi scroll tetap aktif tapi scrollbar disembunyikan */
+        html {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer & Edge */
+        }
+        html::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        body { 
+            background: #121e28; 
+            color: white; 
+            padding: 20px 20px 60px 20px; 
+            text-align: center;
+            min-height: 100vh;
+            overflow-y: auto; 
+            scrollbar-width: none; 
+            -ms-overflow-style: none; 
+        }
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        
+        header { 
+            background: #00796b; padding: 15px 20px; border-radius: 10px; margin-bottom: 15px; 
+            display: flex; justify-content: space-between; align-items: center; text-align: left;
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 15px; }
+        .header-brand img.logo {
+            width: 70px; height: 70px; object-fit: contain; background: white; padding: 5px; 
+            border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .header-title h1 { font-size: 2.2rem; text-transform: uppercase; letter-spacing: 1px; }
+        .header-title p.subtitle { font-size: 1.1rem; opacity: 0.9; margin-top: 3px; }
+        
+        .clock-box { text-align: right; background: rgba(0, 0, 0, 0.2); padding: 8px 15px; border-radius: 8px; }
+        .clock-box #realtime-date { font-size: 0.95rem; opacity: 0.9; }
+        .clock-box #realtime-time { font-size: 1.6rem; font-weight: bold; color: #4caf50; font-family: monospace; }
+
+        .jkn-banner {
+            background: #0288d1; color: #ffffff; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; 
+            font-size: 1.2rem; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); border-left: 6px solid #b3e5fc;
+        }
+
+        /* KEYFRAMES ANIMASI NEON KOTAK */
+        @keyframes boxNeonGlow {
+            0% { box-shadow: 0 0 15px rgba(255,152,0,0.4), inset 0 0 15px rgba(255,152,0,0.2); border-color: #ff9800; }
+            50% { box-shadow: 0 0 35px #ff9800, 0 0 60px rgba(255,152,0,0.8), inset 0 0 25px rgba(255,152,0,0.5); border-color: #ffb74d; }
+            100% { box-shadow: 0 0 15px rgba(255,152,0,0.4), inset 0 0 15px rgba(255,152,0,0.2); border-color: #ff9800; }
+        }
+
+        /* KEYFRAMES ANIMASI NEON KARTU POLI DI BAWAH */
+        @keyframes cardNeonGlow {
+            0% { box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: scale(1); }
+            50% { box-shadow: 0 0 25px #4caf50, 0 0 40px rgba(76,175,80,0.6); transform: scale(1.02); }
+            100% { box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: scale(1); }
+        }
+
+        .neon-active { animation: boxNeonGlow 1.2s ease-in-out infinite; }
+        .card-neon-active { animation: cardNeonGlow 1.2s ease-in-out infinite; }
+
+        .call-container {
+            background: #1e2d3b; border: 3px solid #ff9800; border-radius: 15px; padding: 25px; 
+            margin-bottom: 25px; box-shadow: 0 0 20px rgba(255,152,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .call-title { font-size: 1.4rem; color: #ff9800; text-transform: uppercase; letter-spacing: 2px; }
+        .call-number { font-size: 4.5rem; font-weight: bold; color: #4caf50; margin: 5px 0; }
+        .call-name { font-size: 2.8rem; font-weight: bold; color: #ffffff; margin-bottom: 10px; }
+        .call-poli { font-size: 1.8rem; color: #80cbd2; }
+
+        /* Grid poli: Scrollbar Disembunyikan */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 18px; 
+            overflow-y: auto; 
+            scrollbar-width: none; 
+            -ms-overflow-style: none; 
+        }
+        .grid::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        .card { 
+            border-radius: 12px; padding: 18px 15px; transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            min-height: 180px; border-top: 6px solid rgba(255,255,255,0.4); text-align: center;
+        }
+        
+        .card .klaster-title {
+            font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px;
+            color: #ffe082; font-weight: bold; opacity: 0.9; margin-bottom: 2px; min-height: 1.2em;
+        }
+
+        .card h3 { 
+            font-size: 1.25rem; text-transform: uppercase; letter-spacing: 0.5px; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); text-align: center; width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .card .name { 
+            font-size: 1.35rem; font-weight: bold; color: #ffffff; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); text-align: center; width: 100%;
+            padding: 8px 10px; 
+            border: 2px dashed rgba(255, 255, 255, 0.4); 
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.15); 
+            word-break: break-word;
+            display: flex; justify-content: center; align-items: center; min-height: 48px;
+        }
+
+        .card .num { 
+            font-size: 1.2rem; font-weight: bold; color: #ffe082; 
+            text-align: center; width: 100%; margin-top: 10px; 
+        }
+
+        .color-0 { background: linear-gradient(135deg, #00796b, #004d40); }
+        .color-1 { background: linear-gradient(135deg, #0288d1, #01579b); }
+        .color-2 { background: linear-gradient(135deg, #7b1fa2, #4a148c); }
+        .color-3 { background: linear-gradient(135deg, #c2185b, #880e4f); }
+        .color-4 { background: linear-gradient(135deg, #f57c00, #e65100); }
+        .color-5 { background: linear-gradient(135deg, #388e3c, #1b5e20); }
+        .color-6 { background: linear-gradient(135deg, #512da8, #311b92); }
+        .color-7 { background: linear-gradient(135deg, #00838f, #006064); }
+
+        .card.closed { 
+            background: linear-gradient(135deg, #37474f, #212121) !important; 
+            opacity: 0.75; border-top-color: #d32f2f; 
+        }
+        .card.closed .name { color: #ff5252; font-size: 0.95rem; border-color: rgba(255, 82, 82, 0.4); }
+
+        .running-text-container {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #004d40; color: #ffffff; 
+            border-top: 3px solid #ff9800; padding: 10px 0; font-size: 1.3rem; font-weight: bold; 
+            letter-spacing: 1px; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden;
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="header-brand">
+            <img src="https://i.imgur.com/Bvzxcy6.png" alt="Logo Puskesmas" class="logo">
+            <div class="header-title">
+                <h1>UPT PUSKESMAS SEBANGAR</h1>
+                <p class="subtitle">Papan Informasi Antrian Layanan Kesehatan</p>
+            </div>
+        </div>
+        <div class="clock-box">
+            <div id="realtime-date">Senin, 01 Januari 2026</div>
+            <div id="realtime-time">00:00:00 WIB</div>
+        </div>
+    </header>
+
+    <div class="jkn-banner">
+        Khusus Antrian Online Melalui Mobile JKN Langsung Ke Skrining Visual
+    </div>
+
+    <div class="call-container" id="call-box-container">
+        <div class="call-title">Panggilan Antrian</div>
+        <div class="call-number" id="active-num">---</div>
+        <div class="call-name" id="active-name">Menunggu Panggilan...</div>
+        <div class="call-poli" id="active-poli">-</div>
+    </div>
+
+    <div class="grid" id="tv-grid-container"></div>
+
+    <div class="running-text-container">
+        <marquee behavior="scroll" direction="left" scrollamount="8" id="running-text">
+            Khusus Antrian Online Melalui Mobile JKN Langsung Ke Skrining Visual
+        </marquee>
+    </div>
+
+    <script>
+        function updateWaktu() {
+            const sekarang = new Date();
+            const opsiTanggal = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const jam = String(sekarang.getHours()).padStart(2, '0');
+            const menit = String(sekarang.getMinutes()).padStart(2, '0');
+            const detik = String(sekarang.getSeconds()).padStart(2, '0');
+
+            document.getElementById('realtime-date').innerText = sekarang.toLocaleDateString('id-ID', opsiTanggal);
+            document.getElementById('realtime-time').innerText = `${jam}:${menit}:${detik} WIB`;
+        }
+        setInterval(updateWaktu, 1000);
+        updateWaktu();
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBQtqRQ6V7DgqdoLHSbb6tbR-7BNKusSI0",
+          authDomain: "antrian-puskesmas-sebangar.firebaseapp.com",
+          databaseURL: "https://antrian-puskesmas-sebangar-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "antrian-puskesmas-sebangar",
+          storageBucket: "antrian-puskesmas-sebangar.firebasestorage.app",
+          messagingSenderId: "996056476880",
+          appId: "1:996056476880:web:f19751679bcb69fe9e42d5",
+          measurementId: "G-VM7DKSTY4M"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let masterPoliLokal = {};
+        db.ref('master_poli').on('value', (snap) => {
+            masterPoliLokal = snap.val() || {};
+        });
+
+        // UNLOCK AUDIO OTOMATIS PADA KLIK PERTAMA DI MANA SAJA
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.resume();
+                const testUtterance = new SpeechSynthesisUtterance("");
+                testUtterance.volume = 0;
+                window.speechSynthesis.speak(testUtterance);
+                audioUnlocked = true;
+            }
+        }
+
+        document.addEventListener('click', unlockAudio, { once: true });
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+
+        const antrianAudio = [];
+        let sedangMemutar = false;
+        let lastCalledPoliKey = null;
+
+        function tambahKeAntrianAudio(nomor, nama, namaLayanan, namaKlaster, poliKeyRef) {
+            antrianAudio.push({ nomor, nama, namaLayanan, namaKlaster, poliKeyRef });
+            prosesAntrianAudio();
+        }
+
+        function prosesAntrianAudio() {
+            if (sedangMemutar || antrianAudio.length === 0) return;
+            sedangMemutar = true;
+            const item = antrianAudio.shift();
+
+            let klasterTeks = (item.namaKlaster && item.namaKlaster.trim() !== "") ? item.namaKlaster.trim() : "";
+            
+            if (!klasterTeks && masterPoliLokal) {
+                Object.keys(masterPoliLokal).forEach(k => {
+                    if (masterPoliLokal[k].nama === item.namaLayanan && masterPoliLokal[k].klaster) {
+                        klasterTeks = masterPoliLokal[k].klaster.trim();
+                    }
+                });
+            }
+
+            const boxContainer = document.getElementById('call-box-container');
+            boxContainer.classList.add('neon-active');
+
+            // Berikan animasi neon pada kartu poli yang sedang dipanggil di grid bawah
+            if (lastCalledPoliKey) {
+                const prevCard = document.getElementById('tv-card-' + lastCalledPoliKey);
+                if (prevCard) prevCard.classList.remove('card-neon-active');
+            }
+            if (item.poliKeyRef) {
+                const currentCard = document.getElementById('tv-card-' + item.poliKeyRef);
+                if (currentCard) currentCard.classList.add('card-neon-active');
+                lastCalledPoliKey = item.poliKeyRef;
+            }
+
+            if (item.nomor !== "---") {
+                document.getElementById('active-num').innerText = item.nomor;
+                document.getElementById('active-name').innerText = item.nama;
+                document.getElementById('active-poli').innerText = klasterTeks ? `${klasterTeks} - ${item.namaLayanan}` : item.namaLayanan;
+            }
+
+            const nomorSpasi = item.nomor.replace(/-/g, ', ');
+            const namaUtuh = item.nama.trim().toLowerCase();
+
+            let teks = "";
+            if (item.nomor === "---") {
+                teks = item.nama;
+            } else {
+                if (klasterTeks !== "") {
+                    teks = `Nomor antrian, ${nomorSpasi}, atas nama, ${namaUtuh}, silakan menuju ke, ${klasterTeks}, ${item.namaLayanan}`;
+                } else {
+                    teks = `Nomor antrian, ${nomorSpasi}, atas nama, ${namaUtuh}, silakan menuju ke, ${item.namaLayanan}`;
+                }
+            }
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+
+                const utterance = new SpeechSynthesisUtterance(teks);
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.88;
+                utterance.pitch = 1.0;
+
+                const voices = window.speechSynthesis.getVoices();
+                const indoVoice = voices.find(voice => 
+                    voice.lang.toLowerCase().includes('id') || voice.lang.toLowerCase().includes('ind')
+                );
+                if (indoVoice) utterance.voice = indoVoice;
+
+                utterance.onend = function() {
+                    boxContainer.classList.remove('neon-active');
+                    if (lastCalledPoliKey) {
+                        const cardEl = document.getElementById('tv-card-' + lastCalledPoliKey);
+                        if (cardEl) cardEl.classList.remove('card-neon-active');
+                    }
+
+                    sedangMemutar = false;
+                    setTimeout(prosesAntrianAudio, 400);
+                };
+                utterance.onerror = function(e) {
+                    boxContainer.classList.remove('neon-active');
+                    if (lastCalledPoliKey) {
+                        const cardEl = document.getElementById('tv-card-' + lastCalledPoliKey);
+                        if (cardEl) cardEl.classList.remove('card-neon-active');
+                    }
+
+                    sedangMemutar = false;
+                    setTimeout(prosesAntrianAudio, 400);
+                };
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                sedangMemutar = false;
+            }
+        }
+
+        db.ref('panggilan_aktif').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.timestamp) {
+                // Cari key poli berdasarkan nama layanan untuk efek kartu grid
+                let refKey = null;
+                if (masterPoliLokal) {
+                    Object.keys(masterPoliLokal).forEach(k => {
+                        if (masterPoliLokal[k].nama === data.namaLayanan) refKey = k;
+                    });
+                }
+                tambahKeAntrianAudio(data.nomor, data.nama, data.namaLayanan, data.namaKlaster || "", refKey);
+            }
+        });
+
+        // RENDER KARTU POLI TV
+        db.ref('master_poli').on('value', (snapshot) => {
+            const master = snapshot.val() || {};
+            const container = document.getElementById('tv-grid-container');
+            container.innerHTML = '';
+
+            const keys = Object.keys(master);
+            keys.forEach((key, index) => {
+                const poli = master[key];
+                
+                if (poli.sembunyi) return;
+
+                const colorClass = `color-${index % 8}`;
+                const namaKlaster = poli.klaster ? poli.klaster : '';
+
+                const cardHtml = `
+                    <div class="card ${colorClass} ${poli.tutup ? 'closed' : ''}" id="tv-card-${key}">
+                        <div class="klaster-title">${namaKlaster}</div>
+                        <h3>${poli.nama}</h3>
+                        <div class="name" id="tv-name-${key}">${poli.tutup ? 'TIDAK MELAYANI / TUTUP' : '-'}</div>
+                        <div class="num" id="tv-num-${key}"></div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+
+                db.ref('poli/' + key + '/dipanggil').on('value', (snap) => {
+                    const elName = document.getElementById('tv-name-' + key);
+                    const elNum = document.getElementById('tv-num-' + key);
+                    if (!elName || !elNum) return;
+
+                    if (poli.tutup) {
+                        elName.innerText = "TIDAK MELAYANI / TUTUP";
+                        elNum.innerText = "";
+                    } else if (snap.exists()) {
+                        const d = snap.val();
+                        elName.innerText = d.nama;
+                        elNum.innerText = d.nomor;
+                    } else {
+                        elName.innerText = "-";
+                        elNum.innerText = "";
+                    }
+                });
+            });
+        });
+
+        db.ref('pengumuman').on('value', (snapshot) => {
+            document.getElementById('running-text').innerText = snapshot.val() || "Khusus Antrian Online Melalui Mobile JKN Langsung Ke Skrining Visual";
+        });
+
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        }
+    </script>
+</body>
+</html>
+```[cite: 3]
